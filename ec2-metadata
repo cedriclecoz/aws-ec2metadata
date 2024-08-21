@@ -11,6 +11,9 @@
 #affiliates.                                                            #
 #########################################################################
 
+
+TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+
 function print_help()
 {
 echo "ec2-metadata v0.1.1
@@ -49,7 +52,7 @@ Options:
 function chk_config()
 {
 	#check if run inside an ec2-instance
-	x=$(curl -s http://169.254.169.254/)
+	x=$(curl  -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/)
 	if [ $? -gt 0 ]; then
 		echo '[ERROR] Command not valid outside EC2 instance. Please run this command within a running EC2 instance.'
 		exit 1
@@ -60,7 +63,7 @@ function chk_config()
 function print_normal_metric() {
 	metric_path=$2
 	echo -n $1": "
-	RESPONSE=$(curl -fs http://169.254.169.254/latest/${metric_path}/)
+	RESPONSE=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -fs http://169.254.169.254/latest/${metric_path}/)
 	if [ $? == 0 ]; then
 		echo $RESPONSE
 	else
@@ -72,10 +75,10 @@ function print_normal_metric() {
 function print_block-device-mapping()
 {
 echo 'block-device-mapping: '
-x=$(curl -fs http://169.254.169.254/latest/meta-data/block-device-mapping/)
+x=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -fs http://169.254.169.254/latest/meta-data/block-device-mapping/)
 if [ $? -eq 0 ]; then
 	for i in $x; do
-		echo -e '\t' $i: $(curl -s http://169.254.169.254/latest/meta-data/block-device-mapping/$i)
+		echo -e '\t' $i: $(curl  -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/block-device-mapping/$i)
 	done
 else
 	echo not available
@@ -86,17 +89,17 @@ fi
 function print_public-keys()
 {
 	echo 'public-keys: '
-	x=$(curl -fs http://169.254.169.254/latest/meta-data/public-keys/)
+	x=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -fs http://169.254.169.254/latest/meta-data/public-keys/)
 	if [ $? -eq 0 ]; then
 		for i in $x; do
 			index=$(echo $i|cut -d = -f 1)
 			keyname=$(echo $i|cut -d = -f 2)
 			echo keyname:$keyname
 			echo index:$index
-			format=$(curl -s http://169.254.169.254/latest/meta-data/public-keys/$index/)
+			format=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/public-keys/$index/)
 			echo format:$format
 			echo 'key:(begins from next line)'
-			echo $(curl -s http://169.254.169.254/latest/meta-data/public-keys/$index/$format)
+			echo $(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/public-keys/$index/$format)
 		done
 	else
 		echo not available
